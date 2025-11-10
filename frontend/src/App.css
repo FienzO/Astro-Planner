@@ -1,0 +1,116 @@
+:root {
+  background-color: #252526;
+}
+
+.App {
+  text-align: center;
+
+}
+
+
+
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* This will center all the form items */
+  gap: 20px; /* A bit more spacing */
+}
+
+.App-title {
+  color: aliceblue;
+  display:flex;
+  flex-direction: column;
+  align-items: center;
+  width: 500px;
+  height: 420px;
+  font-size: 1rem;
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #5c5c7020;
+  border-radius: 1rem;
+  gap: 20px;
+}
+
+/* A container for each input and its label to keep them together */
+
+
+.input-group {
+  color: aliceblue;
+  display: flex;
+  flex-direction: column;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  align-items: flex-start; /* Align labels to the left */
+  width: 300px; /* Give a fixed width to the whole group */
+}
+
+.input-group label {
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+/* Style for the textboxes themselves */
+.input-group input {
+  /* background-color: #3e3e4280; */
+  width: 100%; /* Make input fill the .input-group container */
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid #555; /* A darker border for dark mode */
+  border-radius: 5px; /* Let the surface color show through */
+  color: #3e3e42; /* Use the parent text color (white in dark mode) */
+  box-sizing: border-box; /* IMPORTANT: includes padding in the width calculation */
+}
+
+/* The password container needs to be a positioning anchor */
+.password-input-container {
+  position: relative;
+  width: 100%; /* It should fill the .input-group */
+}
+
+/* We don't need to add padding to the input anymore! */
+/* The button will just float on top. */
+
+/* The show/hide button */
+.toggle-password-button {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+}
+
+/* The main submit button */
+.submit-button {
+  width: 300px;
+  padding: 12px;
+  font-size: 1rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.error-message {
+  color: #d32f2f; /* A strong red color */
+  font-weight: bold;
+  margin-top: 15px;
+  padding: 10px;
+  border: 1px solid #d32f2f;
+  border-radius: 5px;
+  background-color: #ffcdd2; /* A light red background */
+}
+
+.success-message {
+  color: #388e3c; /* A nice green color */
+  font-weight: bold;
+  margin-top: 15px;
+  padding: 10px;
+  border: 1px solid #388e3c;
+  border-radius: 5px;
+  background-color: #c8e6c9; /* A light green background */
+}
