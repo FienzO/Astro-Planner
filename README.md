@@ -1,15 +1,16 @@
 # Constructing the Environments
 
-In the frontend directory, you can run:
-
-### `npm install`
-
-And then run [frontend/start.bat](frontend/start.bat) to start the frontend
+In the frontend directory, run `npm install`
 
 To construct the Backend Virtual Environment.
-You can run [(backend/createEnvironment.bat](backend/createEnvironment.bat) to create it.
 
-And then run [backend/start.bat](backend/start.bat) to start the backend
+Run `python -m venv venv` and then `venv\Scripts\activate.bat` to enter the VE.
+Finally run `pip install -r requirements.txt` to install python requirements.
+
+To start the site:
+
+Run [backend/start.bat](backend/start.bat) to start the backend
+and [frontend/start.bat](frontend/start.bat) to start the frontend
 
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
