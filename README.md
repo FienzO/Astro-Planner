@@ -4,12 +4,12 @@ In the frontend directory, you can run:
 
 ### `npm install`
 
-And then run >>[ This ](frontend/start.bat)<< to start the frontend
+And then run [frontend/start.bat](frontend/start.bat) to start the frontend
 
 To construct the Backend Virtual Environment.
-You can run >>[ This ](backend/createEnvironment.bat)<< to create it.
+You can run [(backend/createEnvironment.bat](backend/createEnvironment.bat) to create it.
 
-And then run >>[ This](backend/start.bat)<< to start the backend
+And then run [backend/start.bat](backend/start.bat) to start the backend
 
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
