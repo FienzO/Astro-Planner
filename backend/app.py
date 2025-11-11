@@ -3,60 +3,62 @@ from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
 
-import mysql.connector as mysql
+import mysql.connector as sql
 import os
+
 
 
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
 CORS(app)
 
+
 load_dotenv()
-print("DBHOST from env:", os.getenv("DBHOST"))
 
-def sqlconnect():
-
-    mydb = mysql.connect(
-    host=os.getenv("DBHOST"),
-    user=os.getenv("DBUSER"),
-    password=os.getenv("DBPASS"),
-    database=os.getenv("DBNAME")
-    )
-
-    return mydb
 
 @app.route("/signup", methods=['POST'])
 def signup():
-    passAllowed = "abcdefghijklmnopqrstuvwxyz0123456789~`! @#$%^&*()_-+={[}]|\:;\"'<,>.?/"
+    passAllowed = r"abcdefghijklmnopqrstuvwxyz0123456789~`! @#$%^&*()_-+={[}]|\:;\"'<,>.?/"
 
     data = request.get_json()
     username = data['username'].lower()
-    password = data['password']
+    password1 = data['password']
     password2 = data['firmPassword']
 
     #Error Checks
     if username == '':
-        return jsonify({"message": "Username cant be empty!"})
-    elif password != password2:
-        return jsonify({"message": "Passwords do not match!"})
-    elif password == '':
-        return jsonify({"message": "Password cant be empty!"})
-    elif len(password) > 50:
-        return jsonify({"message": "Password too long! (< 50 char)"})
+        return jsonify({"message": "Username cant be empty!"}), 411
+    elif password1 != password2:
+        return jsonify({"message": "Passwords do not match!"}), 400
+    elif password1 == '':
+        return jsonify({"message": "Password cant be empty!"}), 411
+    elif len(password1) > 50:
+        return jsonify({"message": "Password too long! (< 50 char)"}), 413
     for char in username:
         if char == ' ':
-            return jsonify({"message": "No spaces allowed in username!"})
-    for char in password.lower():
+            return jsonify({"message": "No spaces allowed in username!"}), 400
+    for char in password1.lower():
         if char not in passAllowed:
-            return jsonify({"message": "No Exotic characters allowed in password!"})
+            return jsonify({"message": "No Exotic characters allowed in password!"}), 400
 
     
 
-    try:    
         try:
-            mydb = sqlconnect()
+            Host=os.getenv("DB_HOST")
+            User=os.getenv("DB_USER")
+            Password=os.getenv("DB_PASS")
+            Database=os.getenv("DB_NAME")
+
+            mydb = sql.connect(
+            host=Host,
+            user=User,
+            password=Password,
+            database=Database
+            )
+
         except:
-            return jsonify({"message": "Database connection failed"})
+            return jsonify({"message": "Database connection failed"}), 500
+    try:
         
         addUserSQL ="""
         INSERT INTO userbase
@@ -64,20 +66,20 @@ def signup():
         VALUES (%s, %s)
         """
 
-        hashedPassword = bcrypt.generate_password_hash(password).decode('utf-8')
+        hashedPassword = bcrypt.generate_password_hash(password1).decode('utf-8')
 
         userdata = (username,hashedPassword)
-        mydb.cursor.execute(addUserSQL, userdata)
+        mydb.cursor().execute(addUserSQL, userdata)
 
         mydb.commit()
-        return jsonify({"message": "Account created successfully!"})
+        return jsonify({"message": "Account created successfully!"}), 201
         
 
-    except mysql.Error as err:
+    except sql.Error as err:
         mydb.rollback()
 
-        if err.errno == mysql.errorcode.ER_DUP_ENTRY:
-            return jsonify({"message": "Username already exists!"})
+        if err.errno == sql.errorcode.ER_DUP_ENTRY:
+            return jsonify({"message": "Username already exists!"}), 403
 
     
 @app.route("/login", methods=['POST'])
@@ -88,29 +90,40 @@ def login():
     password = data['password']
 
     try:
-        try:
-            mydb = sqlconnect()
-        except:
-            return jsonify({"message": "Database connection failed"})
-        
-        query = "SELECT hashedPassword FROM userbase WHERE username = %s"
+        Host=os.getenv("DB_HOST")
+        User=os.getenv("DB_USER")
+        Password=os.getenv("DB_PASS")
+        Database=os.getenv("DB_NAME")
 
-        mydb.cursor.execute(query, (username,))
-        result = mydb.cursor.fetchone() 
+        mydb = sql.connect(
+        host=Host,
+        user=User,
+        password=Password,
+        database=Database
+        )
+    except:
+        return jsonify({"message": "Database connection failed"}), 500
 
-        if result:
-            hashedPass = result[0]
-        else:
-            return jsonify({"message": "Invalid username or password"})
-        
+    #try:
+    query = "SELECT hashedPassword FROM userbase WHERE username = %s"
 
-        if bcrypt.check_password_hash(hashedPass, password):
-            print("Login successful!")
-        else:
-            print("Invalid username or password.")
+    cursor = mydb.cursor()
+    cursor.execute(query, (username,))
+    result = cursor.fetchone() 
 
-    except mysql.connector.Error as err:
-        print(f"Database error: {err}")
+    if result:
+        hashedPass = result[0]
+    else:
+        return jsonify({"message": "Invalid username"}), 418
+    
+
+    if bcrypt.check_password_hash(hashedPass, password):
+        return jsonify({"message": "Logged in successfully!"}), 200
+    else:
+        return jsonify({"message": "Invalid password"}), 418
+
+    #except:
+        #return jsonify({"message": "Database check failed"}), 500
     
     pass
 
