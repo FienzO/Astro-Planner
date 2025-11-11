@@ -18,7 +18,7 @@ function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    // console.log('Submitting:', { username, password, firmPassword});
+    // console.log('Submitting:', {username, password, firmPassword});
     try {
     const response = await axios.post("http://127.0.0.1:5000/signup", {
       username: username,

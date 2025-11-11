@@ -8,16 +8,15 @@ function Login() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [apiResponse, setApiResponse] = useState({ message: '', type: '' });
 
-  const handleSignup = async (e) => {
+  const handleLogIn = async (e) => {
     e.preventDefault();
-    console.log('Submitting:', { username, password});
+    //console.log('Submitting:', {username, password});
     try {
     const response = await axios.post("http://127.0.0.1:5000/login", {
       username: username,
       password: password,
     });
 
-    // console.log('Server response:', response.data);
     setApiResponse({
       message: response.data.message, 
       type: 'success' 
@@ -45,7 +44,7 @@ function Login() {
 
   return (
     <div className="App">
-      <form onSubmit={handleSignup}>
+      <form onSubmit={handleLogIn}>
         <div className="App-title">
           <h1>Astro - Planner</h1>
         
@@ -72,7 +71,7 @@ function Login() {
               </button>
             </div>
           </div>
-          <button type="submit">Sign Up</button>
+          <button type="submit">Log in</button>
         </div>
 
           {apiResponse.message && (
