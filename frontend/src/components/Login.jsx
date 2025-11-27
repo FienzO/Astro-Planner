@@ -1,6 +1,7 @@
 import axios from 'axios';
 import '../App.css';
-import { useState } from 'react';
+import { useState, useContext, useEffect } from 'react';
+import { UserContext } from '../context/userContext';
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -16,11 +17,18 @@ function Login() {
       username: username,
       password: password,
     });
+    
+    const token = response.data.access_token;
+    if (token) {
+      localStorage.setItem('authToken', token);
+      setApiResponse({ message: 'Login successful!', type: 'success' });
+    }
 
     setApiResponse({
       message: response.data.message, 
       type: 'success' 
     });
+        
     setUsername('')
     setPassword('')
 
@@ -37,6 +45,7 @@ function Login() {
         } else {
           console.error('Error', error.message);
         }
+
       }
     }
   };
@@ -73,7 +82,7 @@ function Login() {
             <button type="submit">Log in</button>
           </div>
           {apiResponse.message && (
-              <p className={apiResponse.type === 'error' ? 'error-message' : 'success-message'}>{apiResponse.message}</p>
+              <p className={apiResponse.type == 'error' ? 'error-message' : 'success-message'}>{apiResponse.message}</p>
           )}
         </form>
       </div>

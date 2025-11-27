@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from dotenv import load_dotenv
 
 import mysql.connector as sql
@@ -14,6 +15,15 @@ CORS(app)
 
 
 load_dotenv()
+
+@app.route("/profile")
+@jwt_required() # <-- This is the lock on the door
+def my_profile():
+    current_user_identity = get_jwt_identity() # <-- Read the passcard
+    # Here you could look up the user in the database if needed
+    # For now, just sending back the username is fine.
+    return jsonify(username=current_user_identity)
+
 
 
 @app.route("/signup", methods=['POST'])
@@ -114,13 +124,13 @@ def login():
     if result:
         hashedPass = result[0]
     else:
-        return jsonify({"message": "Invalid username"}), 418
+        return jsonify({"message": "Invalid username"}), 400
     
 
     if bcrypt.check_password_hash(hashedPass, password):
         return jsonify({"message": "Logged in successfully!"}), 200
     else:
-        return jsonify({"message": "Invalid password"}), 418
+        return jsonify({"message": "Invalid password"}), 400
 
     #except:
         #return jsonify({"message": "Database check failed"}), 500
