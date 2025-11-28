@@ -49,11 +49,24 @@ function Title({ children }) {
     };
   }, []);
 
+  const logOut = async() => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
+    checkAuthRedirect();
+    // console.log('logging outtt!!!!')
+  };
+
   return (
     <div className='App'>
-      { <p style={{ color: 'white' }}>
-        {loggedUser ? `User: ${loggedUser}` : 'Not Logged in!'}
-      </p> }
+      <div className='title-bar'>
+        <div style={{width:100}}></div>
+
+        { <p style={{ color: 'white' }}>
+          {loggedUser ? `User: ${loggedUser}` : 'Not Logged in!'}
+        </p> }
+
+        <button onClick={logOut} style={{width:100}}>Log Out</button>
+      </div>
 
       <div className="App-backround"> 
         <h1 style={{ color: 'white' }}>Astro - Planner</h1>

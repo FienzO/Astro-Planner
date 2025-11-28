@@ -23,7 +23,7 @@ function Login() {
     if (token) {
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', User);
-      console.log(token)
+      // console.log(token)
     }
     
     setApiResponse({
