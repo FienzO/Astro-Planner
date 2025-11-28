@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token, JWTManager
 from dotenv import load_dotenv
 
 import mysql.connector as sql
@@ -10,7 +10,9 @@ import os
 
 
 app = Flask(__name__)
+app.config["JWT_SECRET_KEY"] = "wawaSecretWawa"
 bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
 CORS(app)
 
 
@@ -126,24 +128,16 @@ def login():
     else:
         return jsonify({"message": "Invalid username"}), 400
     
-
     if bcrypt.check_password_hash(hashedPass, password):
-        return jsonify({"message": "Logged in successfully!"}), 200
+        token = create_access_token(identity=username)
+
+        return jsonify({"message": "Logged in successfully!", "access_token": token, "user": username}), 200
+    
     else:
         return jsonify({"message": "Invalid password"}), 400
 
     #except:
         #return jsonify({"message": "Database check failed"}), 500
-    
-    pass
-
-
-
-
-
-
-
-
 
 
 

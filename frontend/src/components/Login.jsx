@@ -17,13 +17,15 @@ function Login() {
       username: username,
       password: password,
     });
-    
+
     const token = response.data.access_token;
+    const User = response.data.user;
     if (token) {
       localStorage.setItem('authToken', token);
-      setApiResponse({ message: 'Login successful!', type: 'success' });
+      localStorage.setItem('user', User);
+      console.log(token)
     }
-
+    
     setApiResponse({
       message: response.data.message, 
       type: 'success' 
