@@ -4,6 +4,10 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token, JWTManager
 from dotenv import load_dotenv
 
+from skyfield.api import N, S, E, W, load, wgs84
+from skyfield import almanac
+from datetime import date, timedelta
+
 import mysql.connector as sql
 import os
 
@@ -19,12 +23,75 @@ CORS(app)
 load_dotenv()
 
 @app.route("/profile")
-@jwt_required() # <-- This is the lock on the door
+@jwt_required()
 def my_profile():
-    current_user_identity = get_jwt_identity() # <-- Read the passcard
-    # Here you could look up the user in the database if needed
-    # For now, just sending back the username is fine.
+    current_user_identity = get_jwt_identity()
     return jsonify(username=current_user_identity)
+
+@app.route("/apigrab1", methods=['GET'])
+def apigrab1():
+    ts = load.timescale()
+    eph = load('de421.bsp')
+
+    sun = eph['sun']
+    moon = eph['moon']
+    earth = eph['earth']
+
+
+    observer = earth + wgs84.latlon(51.484332 * N, -0.284845 * W)
+
+    today = date.today()
+    times = [ts.utc(today.year, today.month, today.day, hour) for hour in range(72)]
+
+    altitudes = []
+
+    dayTitles = []
+    for i in range(3):
+        currDay = today + timedelta(days=i)
+        dayTitles.append(currDay.strftime("%a %d")) 
+
+    for i, t in enumerate(times):
+        astrometric_sun = observer.at(t).observe(sun)
+        astrometric_moon = observer.at(t).observe(moon)
+        alt_sun, _, _ = astrometric_sun.apparent().altaz()
+        alt_moon, _, _ = astrometric_moon.apparent().altaz()
+
+        dictionary = {"hour": i, "sun_altitude": float(alt_sun.degrees), "moon_altitude": float(alt_moon.degrees)}
+        altitudes.append(dictionary)
+
+    sunrise_hours = []
+    sunsett_hours = []
+
+    t0 = ts.utc(today.year, today.month, today.day, 0)
+    future_date = today + timedelta(days=3) 
+    t1 = ts.utc(future_date.year, future_date.month, future_date.day+3, 0)
+
+    rise, _ = almanac.find_risings(observer, sun, t0, t1)
+    sett, _ = almanac.find_settings(observer, sun, t0, t1)
+
+    for t in rise:
+        dt_object = t.utc_datetime()
+        rounded_hour = dt_object.hour
+        
+        if dt_object.minute >= 30:
+            rounded_hour = (dt_object.hour + 1) % 24
+        sunrise_hours.append({"hour": rounded_hour})
+
+    for t in sett:
+        dt_object = t.utc_datetime()
+        rounded_hour = dt_object.hour
+        
+        if dt_object.minute >= 30:
+            rounded_hour = (dt_object.hour + 1) % 24
+        sunsett_hours.append({"hour": rounded_hour})
+
+    return jsonify({
+        "altData": altitudes,
+        "titleData": dayTitles
+    })
+
+
+
 
 
 
@@ -138,6 +205,11 @@ def login():
 
     #except:
         #return jsonify({"message": "Database check failed"}), 500
+
+@app.route("/home", methods=['POST'])
+def home():
+    pass
+
 
 
 
