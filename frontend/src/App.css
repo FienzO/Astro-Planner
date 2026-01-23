@@ -48,7 +48,7 @@ form {
   flex-direction: column;
   align-items: center;
   /* width: 1200px; */
-  height: 900px;
+  height: fit-content;
   font-size: 1rem;
   font-family: Arial, Helvetica, sans-serif;
   background-color: #4f2b6750;
@@ -140,5 +140,5 @@ form {
 
 .graph-display {
   color: #d4d4d4;
-  align-items: center
+  align-items: center;
 }

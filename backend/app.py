@@ -46,6 +46,7 @@ def apigrab1():
     times = [ts.utc(today.year, today.month, today.day, hour) for hour in range(72)]
 
     altitudes = []
+    planetudes = []
 
     dayTitles = []
     for i in range(3):
@@ -96,13 +97,17 @@ def apigrab1():
 
     api_instance = weatherapi.APIsApi(weatherapi.ApiClient(configuration))
 
-    q = 'London'  # City, Zip, or Lat/Long
+    q = 'TW93DQ'  # City, Zip, or Lat/Long
     days = 3      # Number of days (1-14)
 
 
     api_response = api_instance.forecast_weather(q, days)
 
-    tempData, windData = []
+    tempData = []
+    windData = []
+    cloudData = []
+    visData = []
+
     hour0 = api_response['forecast']['forecastday'][0]['hour'][0]['time_epoch']
     for i in api_response['forecast']['forecastday']:
         # print(i['date'])
@@ -110,15 +115,24 @@ def apigrab1():
             t_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "temp":hour['temp_c'], "dewpoint":hour['dewpoint_c']}
             tempData.append(t_hourData)
 
-            w_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "wind_kph":hour['wind_kph'], "wind_mph":hour['wind_mph'], "wind_deg":hour['wind_degree'], "wind_dir":hour['wind_dir']]}
+            w_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "wind_kph":hour['wind_kph'], "wind_mph":hour['wind_mph'], "gust_kph":hour['gust_kph'], "gust_mph":hour['gust_mph']}
             windData.append(w_hourData)
 
-    # print(tempData)
+            c_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "cloud":hour['cloud'], "rain":hour['chance_of_rain']}
+            cloudData.append(c_hourData)
+
+            v_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "humidity":hour['humidity'], "visibility":hour['vis_km']}
+            visData.append(v_hourData)
+
+    print(cloudData)
 
     return jsonify({
         "altData": altitudes,
+        "planetData": planetudes,
         "tempData": tempData,
         "windData": windData,
+        "cloudData": cloudData,
+        "visData": visData,
         "titleData": dayTitles
     })
 
