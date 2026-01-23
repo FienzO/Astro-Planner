@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from skyfield.api import N, S, E, W, load, wgs84
 from skyfield import almanac
 from datetime import date, timedelta
+import weatherapi
+from weatherapi.rest import ApiException
 
 import mysql.connector as sql
 import os
@@ -48,6 +50,7 @@ def apigrab1():
     dayTitles = []
     for i in range(3):
         currDay = today + timedelta(days=i)
+        # print(currDay)
         dayTitles.append(currDay.strftime("%a %d")) 
 
     for i, t in enumerate(times):
@@ -85,8 +88,37 @@ def apigrab1():
             rounded_hour = (dt_object.hour + 1) % 24
         sunsett_hours.append({"hour": rounded_hour})
 
+    #! WeatherAPI Grab
+     
+    configuration = weatherapi.Configuration()
+    configuration.api_key['key'] = '9a13d258b2214f048ca122720250308'
+
+
+    api_instance = weatherapi.APIsApi(weatherapi.ApiClient(configuration))
+
+    q = 'London'  # City, Zip, or Lat/Long
+    days = 3      # Number of days (1-14)
+
+
+    api_response = api_instance.forecast_weather(q, days)
+
+    tempData, windData = []
+    hour0 = api_response['forecast']['forecastday'][0]['hour'][0]['time_epoch']
+    for i in api_response['forecast']['forecastday']:
+        # print(i['date'])
+        for hour in i['hour']:
+            t_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "temp":hour['temp_c'], "dewpoint":hour['dewpoint_c']}
+            tempData.append(t_hourData)
+
+            w_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "wind_kph":hour['wind_kph'], "wind_mph":hour['wind_mph'], "wind_deg":hour['wind_degree'], "wind_dir":hour['wind_dir']]}
+            windData.append(w_hourData)
+
+    # print(tempData)
+
     return jsonify({
         "altData": altitudes,
+        "tempData": tempData,
+        "windData": windData,
         "titleData": dayTitles
     })
 
