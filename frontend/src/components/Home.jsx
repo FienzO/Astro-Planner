@@ -3,7 +3,7 @@ import '../App.css';
 import { useState, useEffect } from 'react';
 import { CartesianGrid, ComposedChart, Line, LineChart, XAxis, YAxis, ReferenceLine, ReferenceArea, Area, Tooltip} from 'recharts';
 
-function Home() {
+function Home({ latitude, longitude }) {
 
   const now = new Date();
   const currentHour = now.getHours();
@@ -15,28 +15,41 @@ function Home() {
   const [dayTitles, setDayTitles] = useState([]);
 
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/apigrab1");
-        setSunMoonData(response.data.altData); 
-        setTempDewData(response.data.tempData);
-        setWindData(response.data.windData);
-        setCloudData(response.data.cloudData);
-        setVisData(response.data.visData);
-        setDayTitles(response.data.titleData); 
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    console.log(tempDewData)
+  const fetchAstroData = async () => {
+    if (!latitude || !longitude) {
+      alert("Please enter both latitude and longitude!");
+      return;
+    }
 
-    fetchData();
-  }, []);
+    try {
+      const response = await axios.get("http://127.0.0.1:5000/apigrab1", {
+        params: { lat: latitude, lon: longitude }
+      });
+
+      setSunMoonData(response.data.altData);
+      setTempDewData(response.data.tempData);
+      setWindData(response.data.windData);
+      setCloudData(response.data.cloudData);
+      setVisData(response.data.visData);
+      setDayTitles(response.data.titleData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      alert("Error fetching data. Check console.");
+    }
+  };
 
     
     return (
     <div className="App">
+      <div style={{ marginBottom: '20px' }}>
+        <button
+          onClick={fetchAstroData}
+          style={{ padding: '8px 16px', fontSize: '16px' }}
+        >
+          Update Location & Refresh Data
+        </button>
+      </div>
+
       <div className="graph-display">
 
         {/* Sun & Moon Altitudes*/}
@@ -172,7 +185,7 @@ function Home() {
             const index = Math.floor(val / 24);
             return dayTitles[index];}}
           />
-          <YAxis yAxisId="left" orientation="left" domain={['0', '100']} axisLine={{stroke: "white"}} tick={{fill: "white"}} unit="%" />
+          <YAxis yAxisId="left" orientation="left" domain={[0, 100]} axisLine={{stroke: "white"}} tick={{fill: "white"}} unit="%" />
           <YAxis yAxisId="right" orientation="right" domain={[0, 'auto']} axisLine={{stroke: "white"}} tick={{fill: "white"}} unit=' Km'/>
 
           <Tooltip contentStyle={{ backgroundColor: '#181c27e0', border: '0px solid' }}itemStyle={{ color: '#fff' }}/>

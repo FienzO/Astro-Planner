@@ -58,7 +58,12 @@ form {
 
 .title-bar {
   display: flex;
-  justify-content: space-between
+  justify-content: space-between;
+  height: fit-content;
+  background-color: #202020;
+  position: fixed;
+  width: 100%;
+  z-index: 1000;
 }
 
 

@@ -1,15 +1,18 @@
 import axios from 'axios';
 import '../App.css';
 import { useState, useContext, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'
 import { UserContext } from '../context/userContext';
 
 function Login() {
+  const navigate = useNavigate(); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [apiResponse, setApiResponse] = useState({ message: '', type: '' });
 
   const handleLogIn = async (e) => {
+    
     e.preventDefault();
     //console.log('Submitting:', {username, password});
     try {
@@ -33,6 +36,8 @@ function Login() {
         
     setUsername('')
     setPassword('')
+
+    navigate('/home');
 
     } catch (error) {
       if (error.response.data['message']) {

@@ -16,7 +16,7 @@ import os
 
 
 app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = "wawaSecretWawa"
+app.config["JWT_SECRET_KEY"] = "wawaSecretwawa"
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 CORS(app)
@@ -32,6 +32,9 @@ def my_profile():
 
 @app.route("/apigrab1", methods=['GET'])
 def apigrab1():
+    latitude = float(request.args.get('lat', 51.484332))
+    longitude = float(request.args.get('lon', -0.284845))
+
     ts = load.timescale()
     eph = load('de421.bsp')
 
@@ -40,7 +43,7 @@ def apigrab1():
     earth = eph['earth']
 
 
-    observer = earth + wgs84.latlon(51.484332 * N, -0.284845 * W)
+    observer = earth + wgs84.latlon(latitude * N, longitude * W)
 
     today = date.today()
     times = [ts.utc(today.year, today.month, today.day, hour) for hour in range(72)]
@@ -97,11 +100,9 @@ def apigrab1():
 
     api_instance = weatherapi.APIsApi(weatherapi.ApiClient(configuration))
 
-    q = 'TW93DQ'  # City, Zip, or Lat/Long
     days = 3      # Number of days (1-14)
 
-
-    api_response = api_instance.forecast_weather(q, days)
+    api_response = api_instance.forecast_weather(f"{latitude},{longitude}", days)
 
     tempData = []
     windData = []
@@ -109,6 +110,7 @@ def apigrab1():
     visData = []
 
     hour0 = api_response['forecast']['forecastday'][0]['hour'][0]['time_epoch']
+    print(api_response['location'])
     for i in api_response['forecast']['forecastday']:
         # print(i['date'])
         for hour in i['hour']:
@@ -124,7 +126,7 @@ def apigrab1():
             v_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "humidity":hour['humidity'], "visibility":hour['vis_km']}
             visData.append(v_hourData)
 
-    print(cloudData)
+    # print(cloudData)
 
     return jsonify({
         "altData": altitudes,

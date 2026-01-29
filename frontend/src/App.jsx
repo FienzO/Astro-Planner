@@ -8,7 +8,7 @@ import Signup from './components/Signup.jsx';
 import Home from './components/Home.jsx';
 
 
-function App() {
+function App({ latitude, longitude }) {
 
   return (
     <div>
@@ -16,7 +16,10 @@ function App() {
         <Route path='/' element={<Signup />} />
         <Route path='/login' element={<Login />} />
         <Route path='/signup' element={<Signup />} />
-        <Route path='/home' element={<Home />} />
+        <Route
+        path='/home'
+        element={<Home latitude={latitude} longitude={longitude} />}
+        />
       </Routes>
     </div>
   );
