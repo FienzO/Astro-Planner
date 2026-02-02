@@ -59,7 +59,7 @@ form {
 .title-bar {
   display: flex;
   justify-content: space-between;
-  height: fit-content;
+  height: 60px;
   background-color: #202020;
   position: fixed;
   width: 100%;
@@ -146,4 +146,28 @@ form {
 .graph-display {
   color: #d4d4d4;
   align-items: center;
+}
+
+.title-parts {
+  color: aliceblue;
+  display: flex;
+  flex-direction: row;       /* side by side */
+  align-items: center;       /* vertically aligned */
+  justify-content: space-between; /* spread items across available space */
+  font-size: 1rem;
+  font-family: Arial, Helvetica, sans-serif;
+  gap: 20px;                 /* space between items */
+  padding: 10px 20px;        /* some padding so content isn't flush */
+}
+
+.text {
+  color: aliceblue;
+  font-size: 1rem;
+  height: 10px;
+}
+
+.dropdown-location {
+  padding: 5px;
+  margin-right: 10px;
+  border-radius: 4px;
 }

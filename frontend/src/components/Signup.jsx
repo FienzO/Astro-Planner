@@ -4,6 +4,7 @@ import { useState} from 'react';
 
 function Signup() {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firmPassword, setFirmPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -17,6 +18,7 @@ function Signup() {
       username: username,
       password: password,
       firmPassword: firmPassword,
+      email: email,
     });
 
     // console.log('Server response:', response.data);
@@ -27,6 +29,7 @@ function Signup() {
     setUsername('')
     setPassword('')
     setFirmPassword('')
+    setEmail('')
 
     } catch (error) {
       if (error.response.data['message']) {
@@ -51,7 +54,7 @@ function Signup() {
       <div className="App-title">
         <form onSubmit={handleSignup}>       
             <div className="input-group">
-              <label>Username</label>
+              <label title="Your unique username, not case sensitive">Username</label>
               <input
                 type="text"
                 value={username}
@@ -59,9 +62,19 @@ function Signup() {
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>  
+
+            <div className="input-group">
+              <label title="Email is not required but without it your account is non recoverable">Email</label>
+              <input
+                type="text"
+                value={email}
+                placeholder="janedoe@email.com"
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>  
             
             <div className="input-group">
-              <label>Password</label>
+              <label title="Your Password">Password</label>
               <div className="password-input-container">
                 <input
                   type={isPasswordVisible ? "text" : "password"}

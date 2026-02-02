@@ -11,7 +11,8 @@ import weatherapi
 from weatherapi.rest import ApiException
 
 import mysql.connector as sql
-import os
+import os, re
+
 
 
 
@@ -146,11 +147,13 @@ def apigrab1():
 @app.route("/signup", methods=['POST'])
 def signup():
     passAllowed = r"abcdefghijklmnopqrstuvwxyz0123456789~`! @#$%^&*()_-+={[}]|\:;\"'<,>.?/"
+    EMAIL_REGEX = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
 
     data = request.get_json()
     username = data['username'].lower()
     password1 = data['password']
     password2 = data['firmPassword']
+    email = data['email']
 
     #Error Checks
     if username == '':
@@ -167,36 +170,43 @@ def signup():
     for char in password1.lower():
         if char not in passAllowed:
             return jsonify({"message": "No Exotic characters allowed in password!"}), 400
+        
+    if email != '':
+        if not re.match(EMAIL_REGEX, email):
+            return jsonify({"message": "Invalid email format!"}), 400
+    else:
+        email = None
 
     
 
-        try:
-            Host=os.getenv("DB_HOST")
-            User=os.getenv("DB_USER")
-            Password=os.getenv("DB_PASS")
-            Database=os.getenv("DB_NAME")
-
-            mydb = sql.connect(
-            host=Host,
-            user=User,
-            password=Password,
-            database=Database
-            )
-
-        except:
-            return jsonify({"message": "Database connection failed"}), 500
     try:
+        Host=os.getenv("DB_HOST")
+        User=os.getenv("DB_USER")
+        Password=os.getenv("DB_PASS")
+        Database=os.getenv("DB_NAME")
+
+        mydb = sql.connect(
+        host=Host,
+        user=User,
+        password=Password,
+        database=Database
+        )
+
+    except:
+        return jsonify({"message": "Database connection failed"}), 500
+    try:
+        cursor = mydb.cursor()
         
         addUserSQL ="""
         INSERT INTO userbase
-        (username, hashedPassword)
-        VALUES (%s, %s)
+        (username, hashedPassword, email)
+        VALUES (%s, %s, %s)
         """
 
         hashedPassword = bcrypt.generate_password_hash(password1).decode('utf-8')
 
-        userdata = (username,hashedPassword)
-        mydb.cursor().execute(addUserSQL, userdata)
+        userdata = (username,hashedPassword,email)
+        cursor.execute(addUserSQL, userdata)
 
         mydb.commit()
         return jsonify({"message": "Account created successfully!"}), 201
@@ -207,7 +217,6 @@ def signup():
 
         if err.errno == sql.errorcode.ER_DUP_ENTRY:
             return jsonify({"message": "Username already exists!"}), 403
-
     
 @app.route("/login", methods=['POST'])
 def login():
@@ -253,6 +262,76 @@ def login():
 
     #except:
         #return jsonify({"message": "Database check failed"}), 500
+
+@app.route("/locSave", methods=['POST'])
+def locSave():
+    
+
+    data = request.get_json()
+    lat = data['lat']
+    lon = data['lon']
+    username = data['username']
+
+    #Error Checks
+    if lat == '':
+        return jsonify({"message": "Latitude Empty"}), 400
+    elif lon == '':
+        return jsonify({"message": "Longitude Empty"}), 400
+
+    try:
+        Host=os.getenv("DB_HOST")
+        User=os.getenv("DB_USER")
+        Password=os.getenv("DB_PASS")
+        Database=os.getenv("DB_NAME")
+
+        mydb = sql.connect(
+        host=Host,
+        user=User,
+        password=Password,
+        database=Database
+        )
+
+    except:
+        return jsonify({"message": "Database connection failed"}), 500
+    try:
+        cursor = mydb.cursor()
+        
+        addUserSQL ="""
+        INSERT INTO locations
+        (username, lat, lon)
+        VALUES (%s, %s, %s)
+        """
+
+
+        userdata = (username,lat,lon)
+        cursor.execute(addUserSQL, userdata)
+
+        mydb.commit()
+        return jsonify({"message": "Location Saved!"}), 201
+        
+
+    except sql.Error as err:
+        mydb.rollback()
+
+@app.route("/getLocations", methods=['GET'])
+def get_locations():
+    username = request.args.get('username')
+    if not username:
+        return jsonify([])
+
+    try:
+        mydb = sql.connect(
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASS"),
+            database=os.getenv("DB_NAME")
+        )
+        cursor = mydb.cursor(dictionary=True)
+        cursor.execute("SELECT locID, lat, lon FROM locations WHERE username=%s", (username,))
+        rows = cursor.fetchall()
+        return jsonify(rows), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
 
 @app.route("/home", methods=['POST'])
 def home():
