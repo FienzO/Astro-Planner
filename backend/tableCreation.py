@@ -39,8 +39,22 @@ CREATE TABLE IF NOT EXISTS locations (
 ) ENGINE=InnoDB;
 """)
 
+# ---- PASSRESET TABLE ----
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS passreset (
+    codeID INT AUTO_INCREMENT PRIMARY KEY,
+    userID INT NOT NULL,
+    code INT NOT NULL,
+    expiresAt TIMESTAMP NOT NULL,
+    CONSTRAINT fk_passreset_user
+        FOREIGN KEY (userID)
+        REFERENCES userbase(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+""")
+
 db.commit()
 cursor.close()
 db.close()
 
-print("Tables userbase and locations created successfully.")
+print("Tables userbase, locations and passreset created successfully.")

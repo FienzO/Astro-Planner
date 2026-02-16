@@ -2,7 +2,6 @@ import axios from 'axios';
 import '../App.css';
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'
-import { UserContext } from '../context/userContext';
 
 function Login() {
   const navigate = useNavigate(); 
@@ -14,7 +13,6 @@ function Login() {
   const handleLogIn = async (e) => {
     
     e.preventDefault();
-    //console.log('Submitting:', {username, password});
     try {
     const response = await axios.post("http://127.0.0.1:5000/login", {
       username: username,
@@ -26,7 +24,6 @@ function Login() {
     if (token) {
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', User);
-      // console.log(token)
     }
     
     setApiResponse({

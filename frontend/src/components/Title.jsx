@@ -11,7 +11,7 @@ const useAuthCheck = () => {
   const { user, loading } = useContext(UserContext);
 
   const checkAuthRedirect = useCallback(() => {
-    const pubPaths = ['/login', '/signup'];
+    const pubPaths = ['/login', '/signup', '/reset', '/reset1'];
     const token = localStorage.getItem('authToken');
 
     if (loading) {

@@ -1,8 +1,10 @@
 import axios from 'axios';
 import '../App.css';
 import { useState} from 'react';
+import { useNavigate } from 'react-router-dom'
 
 function Signup() {
+  const navigate = useNavigate(); 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -12,7 +14,6 @@ function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    // console.log('Submitting:', {username, password, firmPassword});
     try {
     const response = await axios.post("http://127.0.0.1:5000/signup", {
       username: username,
@@ -21,7 +22,6 @@ function Signup() {
       email: email,
     });
 
-    // console.log('Server response:', response.data);
     setApiResponse({
       message: response.data.message, 
       type: 'success' 

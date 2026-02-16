@@ -12,6 +12,7 @@ from weatherapi.rest import ApiException
 
 import mysql.connector as sql
 import os, re
+import resend, random
 
 
 
@@ -30,6 +31,140 @@ load_dotenv()
 def my_profile():
     current_user_identity = get_jwt_identity()
     return jsonify(username=current_user_identity)
+
+@app.route("/reset1", methods=['POST'])
+def passReset():
+    passAllowed = r"abcdefghijklmnopqrstuvwxyz0123456789~`! @#$%^&*()_-+={[}]|\:;\"'<,>.?/"
+    EMAIL_REGEX = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+    userEmail = request.get_json()['email']
+    code = request.get_json()['code']
+    userPass = request.get_json()['password']
+    firmPass = request.get_json()['firmPassword']
+
+    if not re.match(EMAIL_REGEX, userEmail):
+        return jsonify({"message": "Invalid email format!"}), 400
+    elif userPass != firmPass:
+        return jsonify({"message": "Passwords do not match!"}), 400
+    elif userPass == '':
+        return jsonify({"message": "Password cant be empty!"}), 411
+    elif len(userPass) > 50:
+        return jsonify({"message": "Password too long! (< 50 char)"}), 413
+    for char in userPass.lower():
+        if char not in passAllowed:
+            return jsonify({"message": "No Exotic characters allowed in password!"}), 400
+        
+    try:
+        Host=os.getenv("DB_HOST")
+        User=os.getenv("DB_USER")
+        Password=os.getenv("DB_PASS")
+        Database=os.getenv("DB_NAME")
+
+        mydb = sql.connect(
+        host=Host,
+        user=User,
+        password=Password,
+        database=Database
+        )
+
+    except:
+        return jsonify({"message": "Database connection failed"}), 500
+    
+    cursor = mydb.cursor(dictionary=True)
+        
+    cursor.execute(
+    """
+    SELECT p.userID, u.username
+    FROM passreset p
+    JOIN userbase u ON p.userID = u.id
+    WHERE p.code = %s
+      AND u.email = %s
+      AND p.expiresAt > CURRENT_TIMESTAMP
+    """,
+    (code, userEmail)
+    )
+    result = cursor.fetchone()
+    if not result:
+        return jsonify({"message": "Credentials invalid or Expired"}), 400
+    
+    userID = result['userID']
+    hashedPassword = bcrypt.generate_password_hash(userPass).decode('utf-8')
+
+    cursor.execute(
+    """
+    UPDATE userbase
+    SET hashedPassword = %s
+    WHERE id = %s
+    """,
+    (hashedPassword, userID)
+    )
+
+    mydb.commit()
+    return jsonify({"message": "Password reset successful!"}), 200
+
+@app.route("/reset", methods=['POST'])
+def codeCreate():
+    EMAIL_REGEX = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+    userEmail = request.get_json()['email']
+
+    if not re.match(EMAIL_REGEX, userEmail):
+        return jsonify({"message": "Invalid email format!"}), 400
+    
+    try:
+        Host=os.getenv("DB_HOST")
+        User=os.getenv("DB_USER")
+        Password=os.getenv("DB_PASS")
+        Database=os.getenv("DB_NAME")
+
+        mydb = sql.connect(
+        host=Host,
+        user=User,
+        password=Password,
+        database=Database
+        )
+
+    except:
+        return jsonify({"message": "Database connection failed"}), 500
+    cursor = mydb.cursor(dictionary=True)
+    query = "SELECT id, username FROM userbase WHERE email = %s"
+    cursor.execute(query, (userEmail,))
+
+    result = cursor.fetchone()
+    if result:
+        username = result['username']
+        id = result['id']
+    else:
+        #brute force protection
+        return jsonify({"message": "Email Sent"}), 200
+    
+
+    randCode = random.randint(100000,999999)
+    
+    resend.api_key = os.getenv("R_API_KEY")
+
+    try:
+        email = resend.Emails.send({
+        "from": "no-reply@resend.dev",
+        "to": userEmail,
+        "subject": "Astro-Planner Password reset",
+        "html": f"<p>Your password reset code for the account \'{username}\' is:</p><h1>{randCode}</h1>"
+        })
+    except:
+        return jsonify({"message": "Automatic email Error!"}), 500
+
+    cursor.execute(
+    """
+    INSERT INTO passreset (userID, code, expiresAt)
+    VALUES (%s, %s, CURRENT_TIMESTAMP + INTERVAL 5 MINUTE)
+    """,
+    (id, randCode)
+)
+
+    mydb.commit()
+    cursor.close()
+    mydb.close()
+
+    return jsonify({"message": "Email Sent"}), 200
+
 
 
 @app.route("/apigrab2", methods=['GET'])
@@ -211,8 +346,11 @@ def apigrab1():
         dayTitles.append(currDay.strftime("%a %d"))
 
     #!WeatherAPI
+
+    apiKey = os.getenv("W_API_KEY")
+
     configuration = weatherapi.Configuration()
-    configuration.api_key['key'] = '9a13d258b2214f048ca122720250308'
+    configuration.api_key['key'] = apiKey
     api_instance = weatherapi.APIsApi(weatherapi.ApiClient(configuration))
     days = 3
     api_response = api_instance.forecast_weather(f"{latitude},{longitude}", days)
@@ -233,9 +371,6 @@ def apigrab1():
             windData.append({"hour": h, "wind_kph": hour['wind_kph'], "wind_mph": hour['wind_mph'], "gust_kph": hour['gust_kph'], "gust_mph": hour['gust_mph']})
             cloudData.append({"hour": h, "cloud": hour['cloud'], "rain": hour['chance_of_rain']})
             visData.append({"hour": h, "humidity": hour['humidity'], "visibility": hour['vis_km']})
-
-    # print(planetudes)
-    # print(isVisible)
 
     #!Finndex calculation
 
