@@ -4,9 +4,9 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token, JWTManager
 from dotenv import load_dotenv
 
-from skyfield.api import N, S, E, W, load, wgs84
+from skyfield.api import N, S, E, W, load, wgs84, utc
 from skyfield import almanac
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 import weatherapi
 from weatherapi.rest import ApiException
 
@@ -31,11 +31,85 @@ def my_profile():
     current_user_identity = get_jwt_identity()
     return jsonify(username=current_user_identity)
 
+
+@app.route("/apigrab2", methods=['GET'])
+def apigrab2():
+    searchDate = request.args.get('date')
+    searchTime = request.args.get('time')
+
+    latitude = float(request.args.get('lat'))
+    longitude = float(request.args.get('lon'))
+
+    searchObj = request.args.get('object')
+
+    #convert into usable timescale
+    dt = datetime.strptime(f"{searchDate} {searchTime}", "%Y-%m-%d %H:%M")
+    dt = dt.replace(tzinfo=None)
+
+    ts = load.timescale()
+    ts = ts.utc(dt.year, dt.month, dt.day, dt.hour, dt.minute)
+
+    eph = load('de421.bsp')
+
+    earth = eph['earth']
+
+    planets = {
+        "Mercury": eph['mercury'],
+        "Venus": eph['venus'],
+        "Mars": eph['mars'],
+        "Jupiter": eph['jupiter barycenter'],
+        "Saturn": eph['saturn barycenter'],
+        "Uranus": eph['uranus barycenter'],
+        "Neptune": eph['neptune barycenter']
+    }
+
+    topos = wgs84.latlon(latitude * N, longitude * W)   
+    observer = earth + topos    
+
+    if searchObj == "ISS":
+        stations = load.tle_file('https://celestrak.org/NORAD/elements/stations.txt')
+        iss = next((s for s in stations if s.name == 'ISS (ZARYA)'), None)
+
+        diff = iss - topos                
+        topocentric = diff.at(ts)    
+
+        alt, az, distance = topocentric.altaz()
+        objectAu  = round(distance.au, 3)
+        objectKm  = round(distance.km, 3)
+        objectAlt = round(alt.degrees, 3)
+        objectAz  = round(az.degrees, 3)
+    else:
+        planet = planets[str(searchObj)]
+        astrometric = observer.at(ts).observe(planet)
+        apparent = astrometric.apparent()
+
+        alt, az, distance = apparent.altaz()
+        objectAu  = round(distance.au, 3)
+        objectKm  = round(distance.km, 3)
+        objectAlt = round(alt.degrees, 3)
+        objectAz  = round(az.degrees, 3)
+
+    if objectAlt < 0:
+        isVisible = False
+    else:
+        isVisible = True
+
+    return jsonify({
+        "km": objectKm,
+        "au": objectAu,
+        "alt": objectAlt,
+        "az": objectAz,
+        "visible": str(isVisible)
+    })
+
+
+
 @app.route("/apigrab1", methods=['GET'])
 def apigrab1():
-    latitude = float(request.args.get('lat', 51.484332))
-    longitude = float(request.args.get('lon', -0.284845))
+    latitude = float(request.args.get('lat'))
+    longitude = float(request.args.get('lon'))
 
+    #!Skyfield
     ts = load.timescale()
     eph = load('de421.bsp')
 
@@ -43,66 +117,104 @@ def apigrab1():
     moon = eph['moon']
     earth = eph['earth']
 
+    planets = {
+        "Mercury": eph['mercury'],
+        "Venus": eph['venus'],
+        "Mars": eph['mars'],
+        "Jupiter": eph['jupiter barycenter'],
+        "Saturn": eph['saturn barycenter'],
+        "Uranus": eph['uranus barycenter'],
+        "Neptune": eph['neptune barycenter']
+    }
 
-    observer = earth + wgs84.latlon(latitude * N, longitude * W)
+    topos = wgs84.latlon(latitude * N, longitude * W)   
+    observer = earth + topos                            
+
+    #Calculating DataPoints
+    STEP_MINUTES = 5
+    TOTAL_DAYS = 3
 
     today = date.today()
-    times = [ts.utc(today.year, today.month, today.day, hour) for hour in range(72)]
+    num_points = int((TOTAL_DAYS * 24 * 60) / STEP_MINUTES)
 
+    start_dt = datetime(today.year, today.month, today.day, 0, 0, tzinfo=utc)
+
+    #datetimes every 5 mins
+    times_dt = [start_dt + timedelta(minutes=i * STEP_MINUTES) for i in range(num_points)]
+
+    # convert to Skyfield Time
+    times = ts.utc(times_dt)
+
+
+    astro_sun = observer.at(times).observe(sun).apparent()
+    sun_alts = astro_sun.altaz()[0].degrees
+
+    astro_moon = observer.at(times).observe(moon).apparent()
+    moon_alts = astro_moon.altaz()[0].degrees
+
+    # Altitudes
+    planet_alts = {}
+    for name, body in planets.items():
+        astro = observer.at(times).observe(body).apparent()
+        planet_alts[name] = astro.altaz()[0].degrees
+
+    # ISS Altitudes
+    stations = load.tle_file('https://celestrak.org/NORAD/elements/stations.txt')
+    iss = next((s for s in stations if s.name == 'ISS (ZARYA)'), None)
+    if iss is None:
+        # backup if iss reads null
+        iss_alts = [None] * len(times)
+    else:
+        diff = iss - topos                
+        topocentric = diff.at(times)      # vectorised Location things
+        iss_alts = topocentric.altaz()[0].degrees
+
+    # Building Alt and Az data
     altitudes = []
     planetudes = []
+    isVisible = []
 
+    for i in range(len(times)):
+        altitudes.append({
+            "t_minutes": i,
+            "sun_altitude": float(sun_alts[i]) if sun_alts[i] is not None else None,
+            "moon_altitude": float(moon_alts[i]) if moon_alts[i] is not None else None
+        })
+
+        hour_data = {
+            "t_minutes": i,
+            "Sun": float(sun_alts[i]) if sun_alts[i] is not None else None,
+            "ISS": float(iss_alts[i]) if iss_alts[i] is not None else None
+        }
+
+        for name in planets.keys():
+            val = planet_alts[name][i]
+            hour_data[name] = float(val) if val is not None else None
+
+        planetudes.append(hour_data)
+        
+    for i in range(72):
+        hour_data = {
+            "Sun": True if sun_alts[i*12] < -10 else False
+        }
+        for name in planets.keys():
+
+            val = True if planet_alts[name][i*12] > 10 else False
+            hour_data[name] = float(val) if val is not None else None
+
+        isVisible.append(hour_data)
+
+    # DayTitles
     dayTitles = []
-    for i in range(3):
-        currDay = today + timedelta(days=i)
-        # print(currDay)
-        dayTitles.append(currDay.strftime("%a %d")) 
+    for d in range(3):
+        currDay = today + timedelta(days=d)
+        dayTitles.append(currDay.strftime("%a %d"))
 
-    for i, t in enumerate(times):
-        astrometric_sun = observer.at(t).observe(sun)
-        astrometric_moon = observer.at(t).observe(moon)
-        alt_sun, _, _ = astrometric_sun.apparent().altaz()
-        alt_moon, _, _ = astrometric_moon.apparent().altaz()
-
-        dictionary = {"hour": i, "sun_altitude": float(alt_sun.degrees), "moon_altitude": float(alt_moon.degrees)}
-        altitudes.append(dictionary)
-
-    sunrise_hours = []
-    sunsett_hours = []
-
-    t0 = ts.utc(today.year, today.month, today.day, 0)
-    future_date = today + timedelta(days=3) 
-    t1 = ts.utc(future_date.year, future_date.month, future_date.day+3, 0)
-
-    rise, _ = almanac.find_risings(observer, sun, t0, t1)
-    sett, _ = almanac.find_settings(observer, sun, t0, t1)
-
-    for t in rise:
-        dt_object = t.utc_datetime()
-        rounded_hour = dt_object.hour
-        
-        if dt_object.minute >= 30:
-            rounded_hour = (dt_object.hour + 1) % 24
-        sunrise_hours.append({"hour": rounded_hour})
-
-    for t in sett:
-        dt_object = t.utc_datetime()
-        rounded_hour = dt_object.hour
-        
-        if dt_object.minute >= 30:
-            rounded_hour = (dt_object.hour + 1) % 24
-        sunsett_hours.append({"hour": rounded_hour})
-
-    #! WeatherAPI Grab
-     
+    #!WeatherAPI
     configuration = weatherapi.Configuration()
     configuration.api_key['key'] = '9a13d258b2214f048ca122720250308'
-
-
     api_instance = weatherapi.APIsApi(weatherapi.ApiClient(configuration))
-
-    days = 3      # Number of days (1-14)
-
+    days = 3
     api_response = api_instance.forecast_weather(f"{latitude},{longitude}", days)
 
     tempData = []
@@ -111,23 +223,51 @@ def apigrab1():
     visData = []
 
     hour0 = api_response['forecast']['forecastday'][0]['hour'][0]['time_epoch']
-    print(api_response['location'])
-    for i in api_response['forecast']['forecastday']:
-        # print(i['date'])
-        for hour in i['hour']:
-            t_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "temp":hour['temp_c'], "dewpoint":hour['dewpoint_c']}
-            tempData.append(t_hourData)
+    loc = api_response['location']
+    location = f"Location: {loc['name']}, {loc['country']}"
 
-            w_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "wind_kph":hour['wind_kph'], "wind_mph":hour['wind_mph'], "gust_kph":hour['gust_kph'], "gust_mph":hour['gust_mph']}
-            windData.append(w_hourData)
+    for day in api_response['forecast']['forecastday']:
+        for hour in day['hour']:
+            h = (hour['time_epoch'] - hour0) // 3600
+            tempData.append({"hour": h, "temp": hour['temp_c'], "dewpoint": hour['dewpoint_c']})
+            windData.append({"hour": h, "wind_kph": hour['wind_kph'], "wind_mph": hour['wind_mph'], "gust_kph": hour['gust_kph'], "gust_mph": hour['gust_mph']})
+            cloudData.append({"hour": h, "cloud": hour['cloud'], "rain": hour['chance_of_rain']})
+            visData.append({"hour": h, "humidity": hour['humidity'], "visibility": hour['vis_km']})
 
-            c_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "cloud":hour['cloud'], "rain":hour['chance_of_rain']}
-            cloudData.append(c_hourData)
+    # print(planetudes)
+    # print(isVisible)
 
-            v_hourData = {"hour":((hour['time_epoch']-hour0)//3600), "humidity":hour['humidity'], "visibility":hour['vis_km']}
-            visData.append(v_hourData)
+    #!Finndex calculation
 
-    # print(cloudData)
+    finndex = []
+    for i in range(72):
+        h_dex = 1
+        temp = tempData[i]['temp']
+        dew = tempData[i]['dewpoint']
+        wind = 1 / (max(15, windData[i]['wind_kph'])/15)
+        gust = 1 / (max(20, windData[i]['gust_kph'])/20)
+        cloud = 1 - cloudData[i]['cloud']/100
+        visibility = visData[i]['visibility'] / 10
+        humidity = 1 - (visData[i]['humidity'] / 100)
+
+        dewScore = min(max((temp - dew) / 5, 0), 1.0)
+
+        h_dex = (
+            0.4 * cloud +
+            0.20 * visibility +
+            0.10 * humidity +
+            0.05 * dewScore +
+            0.2 * wind +
+            0.10 * gust
+        )
+
+        h_dex = round(max(0.0, min(h_dex, 1.0)), 2)
+
+        
+
+        if not isVisible[i]['Sun']: h_dex = 0
+
+        finndex.append({'hour':i, 'finndex':h_dex})
 
     return jsonify({
         "altData": altitudes,
@@ -136,8 +276,11 @@ def apigrab1():
         "windData": windData,
         "cloudData": cloudData,
         "visData": visData,
-        "titleData": dayTitles
+        "titleData": dayTitles,
+        "finndex": finndex,
+        "location": location
     })
+
 
 
 
@@ -312,6 +455,61 @@ def locSave():
 
     except sql.Error as err:
         mydb.rollback()
+        return jsonify({"message": "Database Write failed"}), 500
+        
+
+@app.route("/locDel", methods=['POST'])
+def locDel():
+    
+
+    data = request.get_json()
+    lat = data['lat']
+    lon = data['lon']
+    username = data['username']
+
+    #Error Checks
+    if lat == '':
+        return jsonify({"message": "Latitude Empty"}), 400
+    elif lon == '':
+        return jsonify({"message": "Longitude Empty"}), 400
+
+    try:
+        Host=os.getenv("DB_HOST")
+        User=os.getenv("DB_USER")
+        Password=os.getenv("DB_PASS")
+        Database=os.getenv("DB_NAME")
+
+        mydb = sql.connect(
+        host=Host,
+        user=User,
+        password=Password,
+        database=Database
+        )
+
+    except:
+        return jsonify({"message": "Database connection failed"}), 500
+    try:
+        cursor = mydb.cursor()
+        
+        addUserSQL ="""
+        DELETE FROM locations
+        WHERE username = %s
+        AND ABS(lat - %s) < 0.00001
+        AND ABS(lon - %s) < 0.00001;
+        """
+
+
+        userdata = (username,lat,lon)
+        cursor.execute(addUserSQL, userdata)
+
+        mydb.commit()
+        return jsonify({"message": "Location Deleted!"}), 201
+        
+
+    except sql.Error as err:
+        print(err)
+        mydb.rollback()
+        return jsonify({"message": "Database Write Fail"}), 500
 
 @app.route("/getLocations", methods=['GET'])
 def get_locations():

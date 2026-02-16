@@ -6,6 +6,7 @@ import { useState, useContext, useEffect } from 'react';
 import Login from './components/Login.jsx';
 import Signup from './components/Signup.jsx';
 import Home from './components/Home.jsx';
+import Search from './components/Search.jsx';
 
 
 function App({ latitude, longitude }) {
@@ -16,10 +17,8 @@ function App({ latitude, longitude }) {
         <Route path='/' element={<Signup />} />
         <Route path='/login' element={<Login />} />
         <Route path='/signup' element={<Signup />} />
-        <Route
-        path='/home'
-        element={<Home latitude={latitude} longitude={longitude} />}
-        />
+        <Route path='/home' element={<Home latitude={latitude} longitude={longitude} />} />
+        <Route path='/search' element={<Search latitude={latitude} longitude={longitude} />} />
       </Routes>
     </div>
   );

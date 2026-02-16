@@ -74,6 +74,43 @@ function Title({ children }) {
     checkAuthRedirect();
   };
 
+  const handleLocDel = async (e) => {
+  e.preventDefault();
+
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/locDel", {
+        username: loggedUser,
+        lat: latitude,
+        lon: longitude,
+      })
+
+      setApiResponse({
+        message: response.data.message,
+        type: 'success'
+      });
+
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.message) {
+        setApiResponse({
+          message: error.response.data.message,
+          type: 'error'
+        });
+      } else if (error.request) {
+        console.error('No response from server:', error.request);
+        setApiResponse({
+          message: 'No response from server.',
+          type: 'error'
+        });
+      } else {
+        console.error('Error', error.message);
+        setApiResponse({
+          message: error.message,
+          type: 'error'
+        });
+      }
+    }
+  };
+
   const handleLocSave = async (e) => {
   e.preventDefault();
 
@@ -129,53 +166,60 @@ function Title({ children }) {
         </div>
 
         {loggedUser && (
-          <form onSubmit={handleLocSave}>
-            <div className="title-parts">
-              <input
-                type="number"
-                value={latitude}
-                placeholder="Latitude (°)"
-                onChange={(e) => setLatitude(e.target.value)}
-                min="-90"
-                max="90"
-                step="0.00001"
-                style={{ width: '90px', padding: '5px', marginRight: '6px' }}
-              />
+          <div className="title-parts">
+            <form onSubmit={handleLocSave}>
+              <div className="title-parts">
+                <input
+                  type="number"
+                  value={latitude}
+                  placeholder="Latitude (°)"
+                  onChange={(e) => setLatitude(e.target.value)}
+                  min="-90"
+                  max="90"
+                  step="0.000001"
+                  style={{ width: '90px', padding: '5px', marginRight: '6px' }}
+                />
 
-              <input
-                type="number"
-                value={longitude}
-                placeholder="Longitude (°)"
-                onChange={(e) => setLongitude(e.target.value)}
-                min="-180"
-                max="180"
-                step="0.00001"
-                style={{ width: '90px', padding: '5px' }}
-              />
+                <input
+                  type="number"
+                  value={longitude}
+                  placeholder="Longitude (°)"
+                  onChange={(e) => setLongitude(e.target.value)}
+                  min="-180"
+                  max="180"
+                  step="0.000001"
+                  style={{ width: '90px', padding: '5px' }}
+                />
 
-              <button type='submit' style={{width:100, flex:0.2}}>Save Location</button>
-              {apiResponse.message && (
-              <p className='text' >{apiResponse.message}</p>
-              )}
-              <select
-                onChange={(e) => {
-                  const selected = locations.find(loc => loc.locID == e.target.value);
-                  if (selected) {
-                    setLatitude(selected.lat);
-                    setLongitude(selected.lon);
-                  }
-                }}
-                className='dropdown-location'
-              >
-                <option value="">Select saved location</option>
-                {locations.map((loc) => (
-                  <option key={loc.locID} value={loc.locID}>
-                    Lat: {loc.lat}, Lon: {loc.lon}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </form>
+                <button type='submit' style={{width:100, flex:0.2}}>Save Location</button>
+                <select
+                  onChange={(e) => {
+                    const selected = locations.find(loc => loc.locID == e.target.value);
+                    if (selected) {
+                      setLatitude(selected.lat);
+                      setLongitude(selected.lon);
+                    }
+                  }}
+                  className='dropdown-location'
+                >
+                  <option value="">Select saved location</option>
+                  {locations.map((loc) => (
+                    <option key={loc.locID} value={loc.locID}>
+                      Lat: {loc.lat}, Lon: {loc.lon}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </form>
+            <form onSubmit={handleLocDel}>
+              <div className="title-parts">
+                <button type='submit' style={{width:70, flex:0.1}}>DELETE Location</button>
+              </div>
+            </form>
+            {apiResponse.message && (
+                <p className='text' >{apiResponse.message}</p>
+            )}
+          </div>
         )}
 
         <div style={{ flex:0.6}}></div>
@@ -190,7 +234,8 @@ function Title({ children }) {
         <nav style={{ padding: '20px' }}>
           <Link to="/signup" style={{ color: 'white', marginRight: '20px' }}>Sign Up</Link>
           <Link to="/login" style={{ color: 'white', marginRight: '20px' }}>Login</Link>
-          <Link to="/home" style={{ color: 'white' }}>Home</Link>
+          <Link to="/home" style={{ color: 'white', marginRight: '20px' }}>Home</Link>
+          <Link to="/search" style={{ color: 'white' }}>Searcher</Link>
         </nav>
 
         <main>

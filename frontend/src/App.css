@@ -171,3 +171,11 @@ form {
   margin-right: 10px;
   border-radius: 4px;
 }
+
+.selection {
+  display: flex;
+  flex-direction: column;
+  margin-right: 20px;
+  color: white;
+  min-Width: 140;
+}
