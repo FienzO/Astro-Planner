@@ -1,7 +1,7 @@
 import axios from 'axios';
 import '../App.css';
-import { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { Link, useNavigate} from 'react-router-dom'; 
 
 function Login() {
   const navigate = useNavigate(); 
@@ -85,6 +85,9 @@ function Login() {
           <div>
             <button type="submit">Log in</button>
           </div>
+          <nav style={{ padding: '20px' }}>
+            <Link to="/reset" style={{ color: 'white', marginRight: '20px' }}>Forgot Password?</Link>
+          </nav>
           {apiResponse.message && (
               <p className={apiResponse.type == 'error' ? 'error-message' : 'success-message'}>{apiResponse.message}</p>
           )}

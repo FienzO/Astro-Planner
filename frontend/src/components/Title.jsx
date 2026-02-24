@@ -1,5 +1,5 @@
 // import React from 'react';
-import { Routes, Route, Link, useLocation, useNavigate, Outlet} from 'react-router-dom'; 
+import { Link, useLocation, useNavigate} from 'react-router-dom'; 
 import App from './../App';
 import { useState, useContext, useEffect, useCallback } from 'react';
 import { UserContext } from '../context/userContext';
