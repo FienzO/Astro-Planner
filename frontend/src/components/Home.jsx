@@ -46,7 +46,7 @@ function Home({ latitude, longitude }) {
 
     } catch (error) {
       console.error("Error fetching data:", error);
-      alert("Error fetching data. Check console.");
+      alert("Error fetching data. Check Validity of Coordinates.")
     }
   };
     // Object Toggling
@@ -72,7 +72,7 @@ function Home({ latitude, longitude }) {
         </button>
       </div>
       <p className='text'>{location}</p>
-      <p className='text'>Bortle: {bortle}</p>
+      {/* <p className='text'>Bortle: {bortle}</p> */}
       <p>UTC</p>
       <div className="graph-display">
 
@@ -98,7 +98,7 @@ function Home({ latitude, longitude }) {
             tick={{ fill: 'white' }}
             interval={11}
             tickFormatter={(t) => Math.floor((t / 12) % 24)}
-            angle={90} dx={4} textAnchor="start" fontSize={12} tick={{ fill: 'white'}}
+            angle={90} dx={4} textAnchor="start" fontSize={12}
           />
           <YAxis domain={[-90, 90]} axisLine={false} tick={false}/>
           <XAxis
@@ -316,6 +316,5 @@ function Home({ latitude, longitude }) {
 
 }
 
-// ADD EMAIL PASSWORD RESET.
 
 export default Home;

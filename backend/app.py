@@ -18,7 +18,7 @@ import resend, random
 
 
 app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = "wawaSecretwawa"
+app.config["JWT_SECRET_KEY"] = "SectetJWT1981"
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 CORS(app)
@@ -528,7 +528,7 @@ def login():
     if result:
         hashedPass = result[0]
     else:
-        return jsonify({"message": "Invalid username"}), 400
+        return jsonify({"message": "Invalid username or password"}), 400
     
     if bcrypt.check_password_hash(hashedPass, password):
         token = create_access_token(identity=username)
@@ -536,7 +536,7 @@ def login():
         return jsonify({"message": "Logged in successfully!", "access_token": token, "user": username}), 200
     
     else:
-        return jsonify({"message": "Invalid password"}), 400
+        return jsonify({"message": "Invalid username or password"}), 400
 
     #except:
         #return jsonify({"message": "Database check failed"}), 500
