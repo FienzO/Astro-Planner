@@ -12,7 +12,7 @@ from weatherapi.rest import ApiException
 
 import mysql.connector as sql
 import os, re
-import resend, random
+import resend, random, requests
 
 
 
@@ -25,6 +25,66 @@ CORS(app)
 
 
 load_dotenv()
+
+
+@app.route("/locUndo", methods=['POST'])
+def locUndo():
+    data = request.get_json()
+    username = data.get('username')
+    stack = data.get('stack', [])
+
+    if not stack or len(stack) == 0:
+        return jsonify({"message": "Nothing to undo!"}), 400
+
+    try:
+        data = stack.pop() 
+        lat = data['lat']
+        lon = data['lon']
+        try:
+            Host=os.getenv("DB_HOST")
+            User=os.getenv("DB_USER")
+            Password=os.getenv("DB_PASS")
+            Database=os.getenv("DB_NAME")
+
+            mydb = sql.connect(
+            host=Host,
+            user=User,
+            password=Password,
+            database=Database
+            )
+
+        except:
+            return jsonify({"message": "Database connection failed"}), 500
+        
+        cursor = mydb.cursor()
+        
+        insertSQL = "INSERT INTO locations (username, lat, lon) VALUES (%s, %s, %s)"
+        cursor.execute(insertSQL, (username, lat, lon))
+        mydb.commit()
+
+        return jsonify({
+            "message": "Location Restored!",
+            "newStack": stack,
+        }), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Undo error: {str(e)}"}), 500
+
+@app.route("/geolocate")
+def geolocate():
+    try:
+        response = requests.get('http://ip-api.com/json/')
+        data = response.json()
+        
+        if data['status'] == 'success':
+            return {
+                "lat": data['lat'],
+                "lon": data['lon'],
+            }
+    except Exception as error:
+        print(f"Location error: {error}")
+    
+    return jsonify({"lat": None, "lon": None})
 
 @app.route("/profile")
 @jwt_required()
@@ -376,7 +436,7 @@ def apigrab1():
 
     finndex = []
     for i in range(72):
-        h_dex = 1
+        hourlyFinndex = 1
         temp = tempData[i]['temp']
         dew = tempData[i]['dewpoint']
         wind = 1 / (max(15, windData[i]['wind_kph'])/15)
@@ -387,7 +447,7 @@ def apigrab1():
 
         dewScore = min(max((temp - dew) / 5, 0), 1.0)
 
-        h_dex = (
+        hourlyFinndex = (
             0.4 * cloud +
             0.20 * visibility +
             0.10 * humidity +
@@ -396,13 +456,42 @@ def apigrab1():
             0.10 * gust
         )
 
-        h_dex = round(max(0.0, min(h_dex, 1.0)), 2)
+        hourlyFinndex = round(max(0.0, min(hourlyFinndex, 1.0)), 2)
 
         
 
-        if not isVisible[i]['Sun']: h_dex = 0
+        if not isVisible[i]['Sun']: hourlyFinndex = 0
 
-        finndex.append({'hour':i, 'finndex':h_dex})
+        finndex.append({'hour':i, 'finndex':hourlyFinndex})
+
+        #Finndex Merge sort
+        def mergeSort(toSort):
+            if len(toSort) <= 1:
+                return toSort
+
+            mid = len(toSort) // 2
+            leftHalf = mergeSort(toSort[:mid])
+            rightHalf = mergeSort(toSort[mid:])
+
+            sortedOut = []
+            i = 0
+            j = 0
+
+            while i < len(leftHalf) and j < len(rightHalf):
+
+                if leftHalf[i]['finndex'] >= rightHalf[j]['finndex']:
+                    sortedOut.append(leftHalf[i])
+                    i += 1
+                else:
+                    sortedOut.append(rightHalf[j])
+                    j += 1
+
+            sortedOut += (leftHalf[i:] + rightHalf[j:])
+            
+            return sortedOut
+        
+        ranked = mergeSort(list(finndex))
+        podium = ranked[:3]
 
     return jsonify({
         "altData": altitudes,
@@ -413,6 +502,7 @@ def apigrab1():
         "visData": visData,
         "titleData": dayTitles,
         "finndex": finndex,
+        "podium": podium,
         "location": location
     })
 

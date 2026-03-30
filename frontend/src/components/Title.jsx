@@ -5,6 +5,7 @@ import { useState, useContext, useEffect, useCallback } from 'react';
 import { UserContext } from '../context/userContext';
 import axios from 'axios';
 
+
 const useAuthCheck = () => {
   const location = useLocation();
   const navigate = useNavigate(); 
@@ -37,6 +38,35 @@ function Title({ children }) {
 
   const [apiResponse, setApiResponse] = useState({ message: '', type: '' });
 
+  const [undoStack, setUndoStack] = useState(() => {
+    const saved = localStorage.getItem('undoStack');
+    return saved ? JSON.parse(saved) : []; //converts stored plaintext into usable array
+  });
+
+  useEffect(() => {
+    localStorage.setItem('undoStack', JSON.stringify(undoStack));
+  }, [undoStack]);
+
+  const geolocate = async () => {
+      try {
+          const response = await fetch('http://127.0.0.1:5000/geolocate');
+          const data = await response.json();
+
+          if (data.lat && data.lon) {
+              setLatitude(data.lat);
+              setLongitude(data.lon);
+          }
+      } catch (error) {
+          console.error("Auto-location failed:", error);
+      }
+  };
+
+  useEffect(() => {
+        if (latitude === "" && longitude === "") {
+            geolocate();
+        }
+    }, []); 
+
   useEffect(() => {
     checkAuthRedirect();
 
@@ -55,6 +85,8 @@ function Title({ children }) {
       clearInterval(interval);
     };
   }, []);
+
+  
 
   const fetchLocations = async () => {
     if (!token) return;
@@ -84,6 +116,10 @@ function Title({ children }) {
         lon: longitude,
       })
 
+      fetchLocations();
+
+      setUndoStack([...undoStack, { lat: latitude, lon: longitude }]);
+
       setApiResponse({
         message: response.data.message,
         type: 'success'
@@ -108,6 +144,29 @@ function Title({ children }) {
           type: 'error'
         });
       }
+    }
+  };
+
+  const handleLocUndo = async (e) => {
+    e.preventDefault();
+
+    try {
+        const response = await axios.post("http://127.0.0.1:5000/locUndo", {
+            username: loggedUser,
+            stack: undoStack
+        });
+
+        setLatitude(response.data.lat);
+        setLongitude(response.data.lon);
+        
+
+        setUndoStack(response.data.newStack);
+
+        fetchLocations();
+        setApiResponse({ message: response.data.message, type: 'success' });
+
+    } catch (error) {
+        setApiResponse({ message: "Nothing to undo", type: 'error' });
     }
   };
 
@@ -121,6 +180,8 @@ function Title({ children }) {
         lon: longitude,
       });
 
+      fetchLocations();
+
       setApiResponse({
         message: response.data.message,
         type: 'success'
@@ -147,6 +208,8 @@ function Title({ children }) {
       }
     }
   };
+
+  
 
   useEffect(() => {
     if (loggedUser) fetchLocations();
@@ -214,6 +277,11 @@ function Title({ children }) {
             <form onSubmit={handleLocDel}>
               <div className="title-parts">
                 <button type='submit' style={{width:70, flex:0.1}}>DELETE Location</button>
+              </div>
+            </form>
+            <form onSubmit={handleLocUndo}>
+              <div className="title-parts">
+                <button type='submit' style={{width:70, flex:0.1}}>Undo DEL</button>
               </div>
             </form>
             {apiResponse.message && (

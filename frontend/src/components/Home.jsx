@@ -19,6 +19,7 @@ function Home({ latitude, longitude }) {
   const [planetudes, setPlanetudes] = useState([]);
   const [finndex, setFinndex] = useState([]);
   const [bortle, setBortle] = useState([]);
+  const [podium, setPodium] = useState([]);
 
 
   const fetchAstroData = async () => {
@@ -42,6 +43,7 @@ function Home({ latitude, longitude }) {
       setPlanetudes(response.data.planetData);
       setFinndex(response.data.finndex);
       setBortle(response.data.bortle);
+      setPodium(response.data.podium);
 
 
     } catch (error) {
@@ -60,6 +62,13 @@ function Home({ latitude, longitude }) {
     const [showUranus, setShowUranus] = useState(true);
     const [showNeptune, setShowNeptune] = useState(true);
     const [showISS, setShowISS] = useState(true);
+
+    const formatPodiumTime = (hourIndex) => {
+      const dayIndex = Math.floor(hourIndex / 24);
+      const hourOfDay = hourIndex % 24;
+      const dayLabel = dayTitles[dayIndex] || "Upcoming";
+      return `${dayLabel} at ${hourOfDay}:00`;
+    };
 
     return (
     <div className="App">
@@ -310,6 +319,38 @@ function Home({ latitude, longitude }) {
             <Tooltip contentStyle={{ backgroundColor: '#181c27e0', border: '0px solid' }}itemStyle={{ color: '#fff' }}/>
             <ReferenceLine x={currentHour} stroke="red" strokeDasharray="3 3" isFront />
           </ComposedChart>
+
+          {/* Podium Section */}
+          {podium.length > 0 && (
+            <div className="podium-container" style={{ marginTop: '40px', padding: '20px', textAlign: 'center' }}>
+              <h2 style={{ color: '#e358ff' }}>Best observation timings</h2>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '20px', marginTop: '20px' }}>
+                
+                {/* 2nd Place */}
+                <div style={{ backgroundColor: '#181c27e0', padding: '15px', borderRadius: '10px', width: '200px', height: '120px', border: '1px solid #555' }}>
+                  <p style={{ fontSize: '20px' }}>2nd</p>
+                  <p style={{ fontWeight: 'bold' }}>{formatPodiumTime(podium[1].hour)}</p>
+                  <p style={{ color: '#aaaaaa' }}>Score: {podium[1].finndex}</p>
+                </div>
+
+                {/* 1st Place */}
+                <div style={{ backgroundColor: '#181c27e0', padding: '20px', borderRadius: '10px', width: '220px', height: '160px', border: '2px solid #e358ff', boxShadow: '0px 0px 15px #e358ff' }}>
+                  <p style={{ fontSize: '28px' }}>1st</p>
+                  <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{formatPodiumTime(podium[0].hour)}</p>
+                  <p style={{ color: '#aaaaaa' }}>Score: {podium[0].finndex}</p>
+                </div>
+
+                {/* 3rd Place */}
+                <div style={{ backgroundColor: '#181c27e0', padding: '15px', borderRadius: '10px', width: '200px', height: '100px', border: '1px solid #555' }}>
+                  <p style={{ fontSize: '20px' }}>3rd</p>
+                  <p style={{ fontWeight: 'bold' }}>{formatPodiumTime(podium[2].hour)}</p>
+                  <p style={{ color: '#aaaaaa' }}>Score: {podium[2].finndex}</p>
+                </div>
+
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
   );
